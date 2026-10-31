@@ -21,12 +21,14 @@ SECRET_KEYS = (
     "URLHAUS_AUTH_KEY",
 )
 
-# Extraction: fast + cheap. Judge: strongest Flash models. All four have a free tier.
-# (gemini-4-argon is stronger for the judge but is paid-only.)
-DEFAULT_MODEL_FAST = "gemini-3.5-flash-lite"
-DEFAULT_MODEL_FAST_BACKUP = "gemini-3.1-flash-lite"
-DEFAULT_MODEL_JUDGE = "gemini-3.8-flash"
-DEFAULT_MODEL_JUDGE_BACKUP = "gemini-3.6-flash"
+# Chosen by measured latency on the free tier (2026-10-31): gemini-3.6-flash answered in
+# 6-8 s, gemini-3.5-flash-lite in ~30 s, gemini-3.8-flash took 85-100+ s and
+# gemini-3.1-flash-lite returned 503 (overloaded). All have a free tier;
+# gemini-4-argon is a stronger judge but is paid-only.
+DEFAULT_MODEL_FAST = "gemini-3.6-flash"
+DEFAULT_MODEL_FAST_BACKUP = "gemini-3.5-flash-lite"
+DEFAULT_MODEL_JUDGE = "gemini-3.6-flash"
+DEFAULT_MODEL_JUDGE_BACKUP = "gemini-3.5-flash-lite"
 
 
 def _env(name: str) -> str | None:

@@ -153,7 +153,7 @@ async def judge(case: CaseState) -> Verdict:
     try:
         verdict, model = await llm.json_call(
             models=[settings.model_judge, settings.model_judge_backup], system=SYSTEM, user=user,
-            schema=SCHEMA, max_tokens=16000, timeout=90.0, validate=_validate,
+            schema=SCHEMA, max_tokens=16000, timeout=60.0, validate=_validate,
         )
         verdict.notes.append(f"Judged by {model}.")
     except (llm.LLMUnavailable, llm.LLMError) as exc:

@@ -31,7 +31,7 @@ class LLMError(Exception):
 
 
 async def _call_model(model: str, *, system: str, user: str, schema: dict,
-                      max_tokens: int, timeout: float) -> dict:
+                      max_tokens: int, timeout: float, thinking_level: str | None) -> dict:
     body = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": user}]}],
@@ -41,6 +41,8 @@ async def _call_model(model: str, *, system: str, user: str, schema: dict,
             "maxOutputTokens": max_tokens,
         },
     }
+    if thinking_level:
+        body["generationConfig"]["thinkingConfig"] = {"thinkingLevel": thinking_level}
     try:
         # Key goes in a header, never in the URL. retries=0: the backup model is the retry.
         resp = await net.request("POST", f"{API}/{model}:generateContent", json=body, timeout=timeout,
@@ -82,7 +84,8 @@ async def _call_model(model: str, *, system: str, user: str, schema: dict,
 
 
 async def json_call(*, models: list[str], system: str, user: str, schema: dict,
-                    max_tokens: int, timeout: float, validate: Callable[[dict], T]) -> tuple[T, str]:
+                    max_tokens: int, timeout: float, validate: Callable[[dict], T],
+                    thinking_level: str | None = None) -> tuple[T, str]:
     """Returns (validate(parsed JSON), model that produced it).
 
     `validate` should raise ValueError (pydantic's ValidationError is one) on bad
@@ -94,7 +97,7 @@ async def json_call(*, models: list[str], system: str, user: str, schema: dict,
     for model in dict.fromkeys(m for m in models if m):  # de-duplicated, order kept
         try:
             data = await _call_model(model, system=system, user=user, schema=schema,
-                                     max_tokens=max_tokens, timeout=timeout)
+                                     max_tokens=max_tokens, timeout=timeout, thinking_level=thinking_level)
             return validate(data), model
         except LLMError as exc:
             log.warning("LLM call failed: %s", exc)

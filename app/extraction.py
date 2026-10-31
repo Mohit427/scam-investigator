@@ -112,7 +112,8 @@ async def extract_entities(message: str) -> tuple[Entities, str, str | None]:
     try:
         entities, model = await llm.json_call(
             models=[settings.model_fast, settings.model_fast_backup], system=SYSTEM, user=user,
-            schema=SCHEMA, max_tokens=4000, timeout=30.0, validate=Entities.model_validate,
+            schema=SCHEMA, max_tokens=4000, timeout=45.0, validate=Entities.model_validate,
+            thinking_level="low",
         )
     except (llm.LLMUnavailable, llm.LLMError) as exc:
         last_error = str(exc)

@@ -29,8 +29,8 @@ to a regex extractor and the verdict to a rule-based summary of blocklist hits.
 | Variable | Used by | Get one at |
 |---|---|---|
 | `GEMINI_API_KEY` | entity extraction + judge | aistudio.google.com/apikey |
-| `GEMINI_MODEL_FAST` / `_BACKUP` | extraction (default `gemini-3.5-flash-lite`, backup `gemini-3.1-flash-lite`) | — |
-| `GEMINI_MODEL_JUDGE` / `_BACKUP` | judge (default `gemini-3.8-flash`, backup `gemini-3.6-flash`) | — |
+| `GEMINI_MODEL_FAST` / `_BACKUP` | extraction (default `gemini-3.6-flash`, backup `gemini-3.5-flash-lite`) | — |
+| `GEMINI_MODEL_JUDGE` / `_BACKUP` | judge (default `gemini-3.6-flash`, backup `gemini-3.5-flash-lite`) | — |
 | `GOOGLE_SAFE_BROWSING_API_KEY` | Safe Browsing v4 | Google Cloud console |
 | `VIRUSTOTAL_API_KEY` | VirusTotal v3 | virustotal.com |
 | `URLSCAN_API_KEY` | urlscan.io search | urlscan.io |
@@ -39,7 +39,8 @@ to a regex extractor and the verdict to a rule-based summary of blocklist hits.
 RDAP, crt.sh and the OpenPhish community feed need no key.
 
 Each LLM step tries its primary model and, on failure (rate limit, timeout, block,
-bad output), its backup model once. All four default models are on Gemini's free tier;
+bad output), its backup model once. Defaults were picked by measured free-tier latency
+(`gemini-3.8-flash` took 85-100+ s per call). All default models are on Gemini's free tier;
 `gemini-4-argon` is a stronger judge but is paid-only. Note that on the free tier Google
 may use submitted content to improve its products — enable billing before real users.
 

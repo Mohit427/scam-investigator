@@ -35,12 +35,14 @@ async def _feed() -> dict:
         hosts: dict[str, list[str]] = {}
         for line in resp.text.splitlines():
             line = line.strip()
-            if not line:
-                continue
+            if not line.startswith(("http://", "https://")):
+                continue  # guard against an HTML error page being parsed as feed entries
             urls.add(_canon(line))
             host = (urlsplit(line).hostname or "").lower()
             if host:
                 hosts.setdefault(host, []).append(line)
+        if not urls:
+            raise ValueError("OpenPhish feed contained no URLs")
         _cache.update(fetched_at=time.monotonic(),
                       fetched_iso=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                       urls=urls, hosts=hosts)
