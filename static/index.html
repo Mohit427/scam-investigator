@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scam Investigator</title>
+  <meta name="description" content="Paste a suspicious SMS, WhatsApp message or link and get an evidence-backed check.">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="masthead">
+      <h1>Scam Investigator</h1>
+      <p class="lede">Paste a message or link you're unsure about. We check it live against security databases and show you every piece of evidence.</p>
+    </header>
+
+    <form id="form" class="card">
+      <label for="message" class="label">Paste the suspicious message or link</label>
+      <textarea id="message" rows="6" maxlength="5000" required
+        placeholder="e.g. the full SMS or WhatsApp text, including any link"></textarea>
+      <div class="form-row">
+        <p class="privacy">Your message is not stored. Only links and domains are sent to security services.</p>
+        <button id="submit" type="submit">Investigate</button>
+      </div>
+    </form>
+
+    <section id="status" class="status" hidden role="status" aria-live="polite"></section>
+
+    <section id="timeline-section" hidden>
+      <h2 class="section-title">Investigation</h2>
+      <ol id="timeline" class="timeline"></ol>
+    </section>
+
+    <section id="verdict" class="card verdict" hidden aria-live="polite"></section>
+  </main>
+
+  <template id="tpl-step">
+    <li class="tl-item tl-step"><span class="tl-dot"></span><p class="tl-text"></p></li>
+  </template>
+
+  <template id="tpl-finding">
+    <li class="tl-item tl-finding">
+      <span class="tl-dot"></span>
+      <div class="tl-body">
+        <div class="tl-head">
+          <span class="fid"></span>
+          <span class="source"></span>
+          <span class="badge"></span>
+        </div>
+        <p class="tl-text"></p>
+        <details class="raw"><summary>Raw evidence</summary><pre></pre></details>
+      </div>
+    </li>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
