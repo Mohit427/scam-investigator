@@ -1,11 +1,25 @@
-"""Thin wrapper over the Anthropic SDK for structured-JSON calls."""
+"""Structured-JSON calls to the Gemini API (generateContent over httpx).
+
+Each call tries a primary model, then one backup model. That is the single
+retry allowed per call: on a timeout, rate limit, server error, block or
+unusable output, the backup model is tried once and then the caller falls back.
+"""
 from __future__ import annotations
 
 import json
+import logging
+from typing import Callable, TypeVar
 
-import anthropic
+import httpx
 
-from app.config import settings
+from app import net
+from app.config import redact, settings
+
+log = logging.getLogger("scam_investigator.llm")
+
+T = TypeVar("T")
+
+API = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
 class LLMUnavailable(Exception):
@@ -13,61 +27,79 @@ class LLMUnavailable(Exception):
 
 
 class LLMError(Exception):
-    """The call failed, was refused, or returned unusable output."""
+    """Every model failed, was blocked, or returned unusable output."""
 
 
-_client: anthropic.AsyncAnthropic | None = None
-
-
-def client() -> anthropic.AsyncAnthropic:
-    global _client
-    if not settings.anthropic_api_key:
-        raise LLMUnavailable("ANTHROPIC_API_KEY is not set")
-    if _client is None:
-        # max_retries=1 matches the project-wide "at most one retry" rule.
-        _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key, max_retries=1, timeout=60.0)
-    return _client
-
-
-async def json_call(
-    *,
-    model: str,
-    system: str,
-    user: str,
-    schema: dict,
-    effort: str,
-    max_tokens: int,
-    timeout: float,
-) -> dict:
-    """One Messages API call constrained to `schema`; returns the parsed JSON object."""
+async def _call_model(model: str, *, system: str, user: str, schema: dict,
+                      max_tokens: int, timeout: float) -> dict:
+    body = {
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseJsonSchema": schema,
+            "maxOutputTokens": max_tokens,
+        },
+    }
     try:
-        response = await client().with_options(timeout=timeout).messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-            output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
-        )
-    except anthropic.APITimeoutError as exc:
-        raise LLMError("model call timed out") from exc
-    except anthropic.APIConnectionError as exc:
-        raise LLMError("could not reach the Anthropic API") from exc
-    except anthropic.RateLimitError as exc:
-        raise LLMError("Anthropic API rate limit hit") from exc
-    except anthropic.AuthenticationError as exc:
-        raise LLMError("Anthropic API key was rejected") from exc
-    except anthropic.APIStatusError as exc:
-        raise LLMError(f"Anthropic API returned HTTP {exc.status_code}") from exc
+        # Key goes in a header, never in the URL. retries=0: the backup model is the retry.
+        resp = await net.request("POST", f"{API}/{model}:generateContent", json=body, timeout=timeout,
+                                 retries=0, headers={"x-goog-api-key": settings.gemini_api_key})
+    except httpx.TimeoutException as exc:
+        raise LLMError(f"{model} timed out") from exc
+    except httpx.TransportError as exc:
+        raise LLMError("could not reach the Gemini API") from exc
 
-    if response.stop_reason == "refusal":
-        raise LLMError("model declined the request")
-    if response.stop_reason == "max_tokens":
-        raise LLMError("model output was truncated")
-    text = next((b.text for b in response.content if b.type == "text"), "")
+    if resp.status_code != 200:
+        detail = ""
+        try:
+            detail = resp.json().get("error", {}).get("message", "")[:200]
+        except ValueError:
+            pass
+        raise LLMError(redact(f"{model} returned HTTP {resp.status_code} {detail}".strip()))
+
+    data = resp.json()
+    block = (data.get("promptFeedback") or {}).get("blockReason")
+    if block:
+        raise LLMError(f"{model} blocked the prompt ({block})")
+    candidates = data.get("candidates") or []
+    if not candidates:
+        raise LLMError(f"{model} returned no candidates")
+    candidate = candidates[0]
+    finish = candidate.get("finishReason")
+    if finish not in (None, "STOP"):
+        raise LLMError(f"{model} stopped early ({finish})")
+    # Skip thought parts; the JSON answer is in the regular text parts.
+    text = "".join(p.get("text", "") for p in (candidate.get("content") or {}).get("parts") or []
+                   if not p.get("thought"))
     try:
-        data = json.loads(text)
+        parsed = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise LLMError("model returned invalid JSON") from exc
-    if not isinstance(data, dict):
-        raise LLMError("model returned non-object JSON")
-    return data
+        raise LLMError(f"{model} returned invalid JSON") from exc
+    if not isinstance(parsed, dict):
+        raise LLMError(f"{model} returned non-object JSON")
+    return parsed
+
+
+async def json_call(*, models: list[str], system: str, user: str, schema: dict,
+                    max_tokens: int, timeout: float, validate: Callable[[dict], T]) -> tuple[T, str]:
+    """Returns (validate(parsed JSON), model that produced it).
+
+    `validate` should raise ValueError (pydantic's ValidationError is one) on bad
+    output; that counts as a failure and moves on to the backup model.
+    """
+    if not settings.gemini_api_key:
+        raise LLMUnavailable("GEMINI_API_KEY is not set")
+    errors = []
+    for model in dict.fromkeys(m for m in models if m):  # de-duplicated, order kept
+        try:
+            data = await _call_model(model, system=system, user=user, schema=schema,
+                                     max_tokens=max_tokens, timeout=timeout)
+            return validate(data), model
+        except LLMError as exc:
+            log.warning("LLM call failed: %s", exc)
+            errors.append(str(exc))
+        except (ValueError, TypeError):
+            log.warning("LLM output from %s failed validation", model)
+            errors.append(f"{model} output failed validation")
+    raise LLMError("; ".join(errors) or "no model configured")

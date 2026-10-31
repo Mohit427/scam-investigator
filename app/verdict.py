@@ -1,4 +1,4 @@
-"""The judge: an LLM that sees ONLY the extracted entities and the evidence store.
+"""The judge: a Gemini model that sees ONLY the extracted entities and the evidence store.
 
 Its output is then validated deterministically: unknown citations are dropped,
 confidence is capped when live evidence is missing, and a verdict is always produced.
@@ -7,8 +7,6 @@ from __future__ import annotations
 
 import json
 import logging
-
-from pydantic import ValidationError
 
 from app import llm
 from app.config import settings
@@ -147,17 +145,18 @@ async def judge(case: CaseState) -> Verdict:
         + ("No link was present, so there is no live evidence; judge on message patterns only."
            if not case.targets else "")
     )
-    try:
-        data = await llm.json_call(
-            model=settings.model_judge, system=SYSTEM, user=user, schema=SCHEMA,
-            effort="medium", max_tokens=8000, timeout=90.0,
-        )
+
+    def _validate(data: dict) -> Verdict:
         data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0))))
-        verdict = Verdict.model_validate(data)
-    except llm.LLMUnavailable as exc:
+        return Verdict.model_validate(data)
+
+    try:
+        verdict, model = await llm.json_call(
+            models=[settings.model_judge, settings.model_judge_backup], system=SYSTEM, user=user,
+            schema=SCHEMA, max_tokens=16000, timeout=90.0, validate=_validate,
+        )
+        verdict.notes.append(f"Judged by {model}.")
+    except (llm.LLMUnavailable, llm.LLMError) as exc:
+        log.warning("judge failed: %s", exc)
         verdict = _rule_based(case, str(exc))
-    except (llm.LLMError, ValidationError, TypeError, ValueError) as exc:
-        why = str(exc) if isinstance(exc, llm.LLMError) else "judge output failed validation"
-        log.warning("judge failed: %s", why)
-        verdict = _rule_based(case, why)
     return finalize(verdict, case)

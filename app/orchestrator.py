@@ -33,8 +33,8 @@ def finding_event(f: Finding) -> dict:
 
 def _message_finding(entities: Entities, method: str) -> Finding:
     """Evidence about the message itself, derived from the extraction call's output."""
-    if method == "llm":
-        source = "Claude entity extraction"
+    if method.startswith("llm"):
+        source = f"Gemini entity extraction ({method.split(':', 1)[1]})"
         parts = []
         if entities.claimed_brand:
             parts.append(f"claims to be from {entities.claimed_brand}")

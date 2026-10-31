@@ -26,23 +26,27 @@ mock/hardcoded data.
    LLM-extracted URLs/phones/UPI ids are kept only if they literally appear in the
    original message.
 5. **Privacy.** Never persist or log user messages. Third-party lookup APIs receive
-   only URLs or domains — never the message text or personal data. (The Anthropic
-   API is the only service that sees the message, for extraction.)
+   only URLs or domains — never the message text or personal data. (The Gemini
+   API is the only service that sees the message, for extraction. On Gemini's free
+   tier Google may use that content to improve its products; use a billed key for
+   real users.)
 6. **Resilience.** Every external HTTP call has a timeout (10 s default; crt.sh gets
-   20 s because it is slow; LLM calls get longer timeouts), at most one retry, and
+   20 s because it is slow; LLM calls get longer timeouts), at most one retry (for
+   LLM calls, the one retry is the backup model), and
    a graceful fallback. Every tool runs inside `tools.run_tool`, which converts any
    exception/timeout into a Finding. One failing tool never crashes a case, and a
    final `verdict` event is always emitted.
 7. **Dependencies.** Ask the user before adding anything beyond: fastapi, uvicorn,
-   httpx, pydantic, python-dotenv, playwright, anthropic, tldextract. Domain
-   registration data uses RDAP over httpx (no whois libraries). Tests use stdlib
-   `unittest`.
+   httpx, pydantic, python-dotenv, playwright, tldextract. The Gemini API is called
+   over httpx (REST `generateContent`), not an SDK. Domain registration data uses
+   RDAP over httpx (no whois libraries). Tests use stdlib `unittest`.
 
 ## Layout
 
 - `app/config.py` — env loading, key presence (names only), secret redaction.
 - `app/models.py` — `Finding`, `Target`, `Entities`, `Verdict`, `CaseState`, citation validation.
 - `app/net.py` — shared httpx client with timeout + single retry.
+- `app/llm.py` — Gemini `generateContent` JSON calls: primary model, then one backup model.
 - `app/extraction.py` — LLM entity extraction (fast model) with regex fallback.
 - `app/orchestrator.py` — async generator producing SSE events; escalation rules; tool budget (12/case).
 - `app/verdict.py` — LLM judge (judge model) that sees only entities + evidence; post-validation.

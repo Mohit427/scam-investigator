@@ -14,15 +14,19 @@ load_dotenv(ROOT / ".env")
 log = logging.getLogger("scam_investigator")
 
 SECRET_KEYS = (
-    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY",
     "GOOGLE_SAFE_BROWSING_API_KEY",
     "VIRUSTOTAL_API_KEY",
     "URLSCAN_API_KEY",
     "URLHAUS_AUTH_KEY",
 )
 
-DEFAULT_MODEL_FAST = "claude-haiku-5-5"
-DEFAULT_MODEL_JUDGE = "claude-sonnet-5-5"
+# Extraction: fast + cheap. Judge: strongest Flash models. All four have a free tier.
+# (gemini-4-argon is stronger for the judge but is paid-only.)
+DEFAULT_MODEL_FAST = "gemini-3.5-flash-lite"
+DEFAULT_MODEL_FAST_BACKUP = "gemini-3.1-flash-lite"
+DEFAULT_MODEL_JUDGE = "gemini-3.8-flash"
+DEFAULT_MODEL_JUDGE_BACKUP = "gemini-3.6-flash"
 
 
 def _env(name: str) -> str | None:
@@ -32,9 +36,11 @@ def _env(name: str) -> str | None:
 
 @dataclass(frozen=True)
 class Settings:
-    anthropic_api_key: str | None
+    gemini_api_key: str | None
     model_fast: str
+    model_fast_backup: str
     model_judge: str
+    model_judge_backup: str
     safe_browsing_key: str | None
     virustotal_key: str | None
     urlscan_key: str | None
@@ -45,9 +51,11 @@ class Settings:
 def _load() -> Settings:
     port = _env("PORT")
     return Settings(
-        anthropic_api_key=_env("ANTHROPIC_API_KEY"),
-        model_fast=_env("ANTHROPIC_MODEL_FAST") or DEFAULT_MODEL_FAST,
-        model_judge=_env("ANTHROPIC_MODEL_JUDGE") or DEFAULT_MODEL_JUDGE,
+        gemini_api_key=_env("GEMINI_API_KEY"),
+        model_fast=_env("GEMINI_MODEL_FAST") or DEFAULT_MODEL_FAST,
+        model_fast_backup=_env("GEMINI_MODEL_FAST_BACKUP") or DEFAULT_MODEL_FAST_BACKUP,
+        model_judge=_env("GEMINI_MODEL_JUDGE") or DEFAULT_MODEL_JUDGE,
+        model_judge_backup=_env("GEMINI_MODEL_JUDGE_BACKUP") or DEFAULT_MODEL_JUDGE_BACKUP,
         safe_browsing_key=_env("GOOGLE_SAFE_BROWSING_API_KEY"),
         virustotal_key=_env("VIRUSTOTAL_API_KEY"),
         urlscan_key=_env("URLSCAN_API_KEY"),
@@ -71,7 +79,8 @@ def log_key_presence() -> None:
     log.info("API keys present: %s", ", ".join(present) or "none")
     if missing:
         log.warning("API keys missing (those tools will report 'unavailable'): %s", ", ".join(missing))
-    log.info("Models: fast=%s judge=%s", settings.model_fast, settings.model_judge)
+    log.info("Models: extraction=%s (backup %s), judge=%s (backup %s)", settings.model_fast,
+             settings.model_fast_backup, settings.model_judge, settings.model_judge_backup)
 
 
 def redact(text: str) -> str:
