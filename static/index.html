@@ -2,57 +2,209 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Scam Investigator</title>
-  <meta name="description" content="Paste a suspicious SMS, WhatsApp message or link and get an evidence-backed check.">
+  <meta name="description" content="Paste a suspicious SMS, WhatsApp message or link. Live security sources check it and every answer is shown as evidence.">
+  <meta name="theme-color" content="#14264a">
+  <link rel="preload" href="/static/fonts/anek-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <main class="wrap">
-    <header class="masthead">
-      <h1>Scam Investigator</h1>
-      <p class="lede">Paste a message or link you're unsure about. We check it live against security databases and show you every piece of evidence.</p>
-    </header>
+  <a class="skip" href="#message">Skip to the message box</a>
 
-    <form id="form" class="card">
-      <label for="message" class="label">Paste the suspicious message or link</label>
-      <textarea id="message" rows="6" maxlength="5000" required
-        placeholder="e.g. the full SMS or WhatsApp text, including any link"></textarea>
-      <div class="form-row">
-        <p class="privacy">Your message is not stored. Only links and domains are sent to security services.</p>
-        <button id="submit" type="submit">Investigate</button>
+  <header class="cover-bar">
+    <a class="wordmark" href="/" aria-label="Scam Investigator, home">
+      <svg class="seal" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-dasharray="2 2.4"/>
+        <path d="M13 21.5l4.5 4.5L27.5 15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/>
+      </svg>
+      <span>Scam Investigator</span>
+    </a>
+    <nav class="cover-nav" aria-label="Page">
+      <a href="#how">How it checks</a>
+      <a href="#sources">Who we ask</a>
+      <a href="#help">Already paid?</a>
+      <a class="call" href="tel:1930">Helpline 1930</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="spread" id="case" aria-label="Investigate a message">
+      <canvas class="guilloche" aria-hidden="true"></canvas>
+
+      <div class="page page-left">
+        <div class="case-entry" id="case-entry">
+          <h1>Strange message? Check&nbsp;it&nbsp;first.</h1>
+          <p class="lead">Paste the SMS, WhatsApp text or link. Live security sources examine it, and every answer is printed here as evidence.</p>
+
+          <form id="form" class="paste" novalidate>
+            <label for="message" class="paste-label">The message or link you received</label>
+            <textarea id="message" name="message" rows="7" maxlength="5000" required spellcheck="false"
+              aria-describedby="paste-note"
+              placeholder="Paste the full message here, including any link"></textarea>
+            <div class="paste-foot">
+              <p id="paste-note" class="note">Not stored. Only links and domains go to security services.</p>
+              <button id="submit" class="btn" type="submit">
+                <span class="btn-text">Investigate</span>
+                <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              </button>
+            </div>
+          </form>
+
+          <div class="tryline" id="tryline">
+            <span>Try a pattern people receive:</span>
+            <button type="button" class="try" data-example="kyc">Bank KYC SMS</button>
+            <button type="button" class="try" data-example="power">Power cut-off (Hinglish)</button>
+            <button type="button" class="try" data-example="bank">A bank's link</button>
+          </div>
+        </div>
+
+        <div class="case-summary" id="case-summary" hidden>
+          <p class="case-label">Case under investigation</p>
+          <p class="case-text" id="case-text"></p>
+          <button type="button" class="link-btn" id="new-case">Check a different message</button>
+        </div>
       </div>
-    </form>
 
-    <section id="status" class="status" hidden role="status" aria-live="polite"></section>
+      <div class="page page-right" id="result" tabindex="-1" aria-labelledby="result-title" data-ui>
+        <h2 class="visually-hidden" id="result-title">Result</h2>
 
-    <section id="timeline-section" hidden>
-      <h2 class="section-title">Investigation</h2>
-      <ol id="timeline" class="timeline"></ol>
+        <div class="stamps" id="stamps" role="group" aria-label="Possible verdicts">
+          <div class="stamp stamp-scam" data-verdict="likely_scam"><span>Likely scam</span></div>
+          <div class="stamp stamp-unsure" data-verdict="cannot_determine"><span>Can't say</span></div>
+          <div class="stamp stamp-genuine" data-verdict="likely_legitimate"><span>Likely genuine</span></div>
+        </div>
+
+        <p class="status" id="status" role="status" aria-live="polite">Paste a message and press Investigate. Each live source's answer will print in the ledger below.</p>
+
+        <section class="verdict" id="verdict" hidden aria-live="polite" aria-labelledby="verdict-title"></section>
+
+        <div class="ledger-wrap">
+          <ol class="stations" id="stations" aria-label="Stages of the investigation">
+            <li data-stage="read">Reading the message</li>
+            <li data-stage="reputation">Checking reputation</li>
+            <li data-stage="visit">Visiting the link</li>
+            <li data-stage="judge">Weighing the evidence</li>
+          </ol>
+          <div class="ledger" id="ledger-scroll">
+            <table class="ledger-table">
+              <caption class="visually-hidden">Evidence ledger: one entry per live check</caption>
+              <thead>
+                <tr><th scope="col" class="c-time">Time</th><th scope="col" class="c-src">Source</th><th scope="col">Particulars</th><th scope="col" class="c-sig">Signal</th></tr>
+              </thead>
+              <tbody id="ledger"></tbody>
+              <tbody id="ledger-empty" class="blank-rows">
+                <tr class="blank"><td colspan="4" id="ledger-empty-text">No entries yet. Each live source that answers prints one row here.</td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+                <tr class="blank"><td colspan="4"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section id="verdict" class="card verdict" hidden aria-live="polite"></section>
+    <section class="how" id="how" aria-labelledby="how-title">
+      <h2 id="how-title">What happens to your message</h2>
+      <ol class="stair">
+        <li>
+          <h3>Read</h3>
+          <p>We pull out the links, phone numbers and UPI ids, and what the message asks you to do. Hidden instructions inside it are ignored.</p>
+        </li>
+        <li>
+          <h3>Check reputation</h3>
+          <p>Each link goes to blocklists and registries at the same time: is it reported for phishing, how old is the domain, does it imitate a brand?</p>
+        </li>
+        <li>
+          <h3>Visit, sealed</h3>
+          <p>If the answers are unclear, our server opens the link in a locked-down browser, follows every redirect and reads what the page asks for.</p>
+        </li>
+        <li>
+          <h3>Judge, with receipts</h3>
+          <p>The verdict may only cite entries in the ledger. When the evidence is thin, it says it can't say, instead of guessing.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="sources" id="sources" aria-labelledby="sources-title">
+      <div class="sources-head">
+        <h2 id="sources-title">Who we ask, and what they get</h2>
+        <p>Nine live sources and one local check. None of them ever sees your message, only the link or its domain.</p>
+      </div>
+      <table class="statement">
+        <caption class="visually-hidden">Sources consulted during an investigation</caption>
+        <thead><tr><th scope="col">Source</th><th scope="col">What it tells us</th><th scope="col">What we send</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Google Safe Browsing</th><td>Whether Google has flagged the link for phishing or malware</td><td>The link</td></tr>
+          <tr><th scope="row">VirusTotal</th><td>How many of ~90 security engines call the link malicious</td><td>The link</td></tr>
+          <tr><th scope="row">URLhaus</th><td>Whether the link or its host is spreading malware</td><td>The link and host</td></tr>
+          <tr><th scope="row">OpenPhish</th><td>Whether the link is on a live phishing feed</td><td>Nothing; we download the feed</td></tr>
+          <tr><th scope="row">Domain registry (RDAP)</th><td>When the domain was registered; scam sites are often days old</td><td>The domain</td></tr>
+          <tr><th scope="row">Certificate log (crt.sh)</th><td>When the site's security certificates first appeared</td><td>The domain</td></tr>
+          <tr><th scope="row">Lookalike check</th><td>Whether the domain imitates a bank, wallet or government site</td><td>Nothing; runs on our server</td></tr>
+          <tr><th scope="row">Sealed browser visit</th><td>Where the link really leads, and whether it asks for OTPs, PINs or app installs</td><td>A visit from our server, not your phone</td></tr>
+          <tr><th scope="row">Page reading (Gemini)</th><td>What the landing page claims to be and what it wants from you</td><td>The page's text</td></tr>
+          <tr><th scope="row">urlscan.io</th><td>Recent scans of the site, or a fresh unlisted one</td><td>The link</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="help" id="help" aria-labelledby="help-title">
+      <h2 id="help-title">Already clicked, paid or shared an OTP?</h2>
+      <div class="help-grid">
+        <a class="helpline" href="tel:1930">
+          <span class="helpline-num">1930</span>
+          <span class="helpline-text">Call the National Cyber Crime Helpline right away. The sooner you call, the better the chance of freezing the money.</span>
+        </a>
+        <ul class="help-list">
+          <li><a href="https://cybercrime.gov.in" rel="noopener" target="_blank">Report it on cybercrime.gov.in</a><span>File a complaint with screenshots of the message.</span></li>
+          <li><a href="https://sancharsaathi.gov.in" rel="noopener" target="_blank">Report the number on Sanchar Saathi (Chakshu)</a><span>Flags the sender's number with the Department of Telecommunications.</span></li>
+          <li><strong>Call your bank on the number printed on your card</strong><span>Block the card or UPI, and change any password or PIN you shared.</span></li>
+        </ul>
+      </div>
+    </section>
   </main>
 
-  <template id="tpl-step">
-    <li class="tl-item tl-step"><span class="tl-dot"></span><p class="tl-text"></p></li>
-  </template>
+  <footer class="colophon">
+    <p>Your message is checked in memory and never stored. Results come only from live sources at the moment you ask.</p>
+    <p class="colophon-name" aria-hidden="true">Scam Investigator</p>
+  </footer>
 
-  <template id="tpl-finding">
-    <li class="tl-item tl-finding">
-      <span class="tl-dot"></span>
-      <div class="tl-body">
-        <div class="tl-head">
-          <span class="fid"></span>
-          <span class="source"></span>
-          <span class="badge"></span>
-        </div>
-        <p class="tl-text"></p>
+  <svg width="0" height="0" class="defs" aria-hidden="true" focusable="false">
+    <filter id="stamp-ink" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.6 1.25" result="speckle"/>
+      <feComposite in="SourceGraphic" in2="speckle" operator="in" result="inked"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="1" seed="3" result="warp"/>
+      <feDisplacementMap in="inked" in2="warp" scale="2.2"/>
+    </filter>
+  </svg>
+
+  <template id="tpl-row">
+    <tr class="entry">
+      <td class="c-time"></td>
+      <td class="c-src"><span class="src"></span><span class="ref"></span></td>
+      <td class="c-part">
+        <p class="part"></p>
         <details class="raw"><summary>Raw evidence</summary><pre></pre></details>
-      </div>
-    </li>
+      </td>
+      <td class="c-sig"><span class="sig"></span></td>
+    </tr>
   </template>
 
-  <script src="/static/app.js"></script>
+  <template id="tpl-note">
+    <tr class="entry-note"><td class="c-time"></td><td colspan="3"><p></p></td></tr>
+  </template>
+
+  <script src="/static/guilloche.js" defer></script>
+  <script src="/static/app.js" defer></script>
 </body>
 </html>

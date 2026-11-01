@@ -67,7 +67,10 @@ mock/hardcoded data.
   shares one browser visit via `browser_trace.capture`), urlscan (search, else new unlisted scan).
 - `app/safety.py` — public-host check used by the browser.
 - `app/ratelimit.py` — in-memory per-client rate limit + concurrency cap for `/api/investigate`.
-- `static/` — single page UI (vanilla JS, fetch + stream reader for POST SSE).
+- `static/` — single page UI, no build step: `index.html`, `style.css`, `app.js` (fetch + stream
+  reader for POST SSE), `guilloche.js` (paper background, a Canvas 2D port of ReactBits Waves),
+  `fonts/` (self-hosted Anek Latin, OFL). Visual system: `DESIGN.md`; product context: `PRODUCT.md`.
+  The UI may offer example *inputs*, never example results.
 
 ## Conventions
 

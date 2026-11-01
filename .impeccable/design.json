@@ -1,0 +1,10 @@
+{
+  "name": "Evidence Passbook",
+  "source": "static/style.css",
+  "colors": {
+    "light": {"cover": "#14264a", "cover-deep": "#0e1c38", "on-cover": "#e6efe8", "on-cover-2": "#b4c4d8", "foil": "#cfae5a", "paper": "#e6efe8", "paper-2": "#d9e6dd", "paper-field": "#fbfdfb", "fold": "#c6d8cc", "guilloche": "#bcd2c4", "rule": "#a9c1b3", "ink": "#10213d", "ink-2": "#3d4f66", "ink-3": "#5b6c80", "scam": "#b42318", "genuine": "#1d6a44", "unsure": "#8a5d00", "neutral": "#4d5d70"},
+    "dark": {"cover": "#0b1628", "cover-deep": "#07101f", "on-cover": "#e4ede7", "on-cover-2": "#a3b5ca", "foil": "#d9b968", "paper": "#13292a", "paper-2": "#183334", "paper-field": "#0d1f20", "fold": "#0c1c1d", "guilloche": "#1f3d3c", "rule": "#2c4b4a", "ink": "#e4ede7", "ink-2": "#b2c3d3", "ink-3": "#8fa3b8", "scam": "#ff8f80", "genuine": "#72d4a2", "unsure": "#e9b752", "neutral": "#a9b9ca"}
+  },
+  "typography": {"family": "Anek Latin", "files": ["static/fonts/anek-latin.woff2", "static/fonts/anek-latin-ext.woff2"], "narrow": "78%"},
+  "radius": {"default": 0, "genuine-stamp": "999px"}
+}

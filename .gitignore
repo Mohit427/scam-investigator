@@ -6,3 +6,11 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .DS_Store
+
+# design tooling output and locally installed agent skills
+.taste-skill/
+.impeccable/review/
+.impeccable/mocks/
+.agents/
+.claude/
+.impeccable/questions/
