@@ -124,6 +124,18 @@ private network addresses unreachable.
 set `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_HOUR`, `MAX_CONCURRENT_CASES`). The Docker image runs
 uvicorn with `--proxy-headers` so limits apply per real client behind a load balancer.
 
+## Deploy (Railway)
+
+`railway.toml` builds the Dockerfile and health-checks `/health`. With the Railway CLI:
+
+```bash
+railway login
+railway init            # create a project
+railway up              # upload and build (respects .gitignore, so .env is not sent)
+railway variables --set GEMINI_API_KEY=...   # and the other four keys
+railway domain          # generate the public URL
+```
+
 ## Deploy (Render)
 
 `render.yaml` is a Render Blueprint: in the Render dashboard choose **New → Blueprint**, pick this
