@@ -8,8 +8,8 @@ from __future__ import annotations
 import time
 from collections import deque
 
-PER_CLIENT_LIMITS = ((60.0, 5), (3600.0, 30))  # (window seconds, max requests)
-MAX_CONCURRENT = 3
+PER_CLIENT_LIMITS = ((60.0, 20), (3600.0, 200))  # (window seconds, max requests)
+MAX_CONCURRENT = 6
 
 
 class RateLimiter:

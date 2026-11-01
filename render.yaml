@@ -1,0 +1,28 @@
+# Render Blueprint: one Docker web service. Secrets are entered in the Render dashboard
+# (sync: false), never committed.
+services:
+  - type: web
+    name: scam-investigator
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard        # 2 GB RAM: headless Chromium is unreliable on 512 MB plans
+    region: singapore     # closest Render region to India
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_SAFE_BROWSING_API_KEY
+        sync: false
+      - key: VIRUSTOTAL_API_KEY
+        sync: false
+      - key: URLSCAN_API_KEY
+        sync: false
+      - key: URLHAUS_AUTH_KEY
+        sync: false
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "20"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "200"
+      - key: MAX_CONCURRENT_CASES
+        value: "6"

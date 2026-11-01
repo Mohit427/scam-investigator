@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app import net
-from app.config import ROOT, key_presence, log_key_presence
+from app.config import ROOT, key_presence, log_key_presence, settings
 from app.orchestrator import investigate
 from app.ratelimit import RateLimiter
 from app.tools import browser_trace
@@ -31,7 +31,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Scam Investigator", lifespan=lifespan)
-limiter = RateLimiter()
+limiter = RateLimiter(limits=((60.0, settings.rate_per_minute), (3600.0, settings.rate_per_hour)),
+                      max_concurrent=settings.max_concurrent_cases)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 

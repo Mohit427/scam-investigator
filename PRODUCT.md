@@ -47,7 +47,7 @@ Chakshu.
 - An investigation takes ~10–60 s; results stream in as server-sent events (step, finding, verdict).
 - Verdict: one of three labels, confidence 0–1, cited reasons, action guidance, notes.
 - Messages without links are judged from text only, capped at 60% confidence.
-- Rate limit: 5 checks/minute, 30/hour per client.
+- Rate limit (configurable): 20 checks/minute, 200/hour per client, 6 cases at once.
 - Hard rule: no mock or sample results anywhere in the UI. Example *inputs* may be offered; example
   findings/verdicts may not.
 

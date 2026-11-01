@@ -48,6 +48,14 @@ class Settings:
     urlscan_key: str | None
     urlhaus_key: str | None
     port: int
+    rate_per_minute: int
+    rate_per_hour: int
+    max_concurrent_cases: int
+
+
+def _int(name: str, default: int) -> int:
+    value = _env(name)
+    return int(value) if value and value.isdigit() and int(value) > 0 else default
 
 
 def _load() -> Settings:
@@ -63,6 +71,10 @@ def _load() -> Settings:
         urlscan_key=_env("URLSCAN_API_KEY"),
         urlhaus_key=_env("URLHAUS_AUTH_KEY"),
         port=int(port) if port and port.isdigit() else 8000,
+        # Judges at one venue often share a public IP, so the per-client limits are generous.
+        rate_per_minute=_int("RATE_LIMIT_PER_MINUTE", 20),
+        rate_per_hour=_int("RATE_LIMIT_PER_HOUR", 200),
+        max_concurrent_cases=_int("MAX_CONCURRENT_CASES", 6),
     )
 
 

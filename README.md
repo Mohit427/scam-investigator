@@ -120,5 +120,13 @@ domains. The message text is sent only to the Gemini API for extraction. The bro
 opens suspicious links from the server (not the user's device) with downloads blocked and
 private network addresses unreachable.
 
-`/api/investigate` is rate limited (5/min and 30/hour per client, 3 concurrent). Behind a
-reverse proxy, start uvicorn with `--proxy-headers` so limits apply per real client.
+`/api/investigate` is rate limited per client (default 20/min and 200/hour, 6 cases at once;
+set `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_HOUR`, `MAX_CONCURRENT_CASES`). The Docker image runs
+uvicorn with `--proxy-headers` so limits apply per real client behind a load balancer.
+
+## Deploy (Render)
+
+`render.yaml` is a Render Blueprint: in the Render dashboard choose **New → Blueprint**, pick this
+repository, and paste the five API keys when prompted. It builds the Dockerfile on a 2 GB
+`standard` instance in Singapore with `/health` as the health check. Use a billed Gemini key for
+real users (see Privacy).
