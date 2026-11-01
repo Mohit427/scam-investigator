@@ -386,6 +386,7 @@ textarea:focus-visible { outline: 3px solid var(--foil); outline-offset: 0; }
 @keyframes flash { 0%, 30% { background: var(--unsure-wash); } 100% { background: transparent; } }
 .entry-note td { padding: 6px 8px; border-bottom: 1px solid var(--rule); font-size: var(--s-small); color: var(--ink-2); }
 .entry-note p { font-style: italic; }
+.entry-close p { font-style: normal; font-weight: 700; color: var(--ink); }
 
 .sig {
   display: inline-block; padding: 1px 7px 2px;

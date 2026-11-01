@@ -168,6 +168,21 @@
     requestAnimationFrame(tick);
   }
 
+  // The trail ends on the outcome, not on the step that was still running.
+  function closeTrail(v) {
+    const text = `Evidence weighed. Verdict: ${LABELS[v.verdict] || v.verdict}, ${Math.round((v.confidence || 0) * 100)}% sure.`;
+    let row = [...ledger.querySelectorAll(".entry-note")].reverse()
+      .find((r) => r.querySelector(".note-text").textContent.startsWith("Weighing the evidence"));
+    if (!row) {
+      row = $("#tpl-note").content.firstElementChild.cloneNode(true);
+      ledger.appendChild(row);
+      ledgerEmpty.hidden = true;
+    }
+    row.classList.add("entry-close");
+    row.querySelector(".note-time").textContent = clock();
+    row.querySelector(".note-text").textContent = text;
+  }
+
   function strike(verdict) {
     stampsEl.classList.add("decided");
     stampsEl.querySelectorAll(".stamp").forEach((s) => {
@@ -179,6 +194,7 @@
 
   function renderVerdict(v) {
     finishStages();
+    closeTrail(v);
     strike(v.verdict);
     verdictEl.innerHTML = "";
     verdictEl.className = "verdict " + v.verdict;
