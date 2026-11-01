@@ -124,6 +124,13 @@ private network addresses unreachable.
 set `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_HOUR`, `MAX_CONCURRENT_CASES`). The Docker image runs
 uvicorn with `--proxy-headers` so limits apply per real client behind a load balancer.
 
+## Deploy (Vercel)
+
+Vercel runs `Dockerfile.vercel` as a container function (Chromium included), region `bom1`
+(Mumbai). The project's environment needs the five API keys plus `PORT=8080`. Pushing to `main`
+deploys to production. Containers scale to zero after ~5 idle minutes, so the first request after a
+quiet spell has a cold start; in-memory caches and rate-limit counters reset with them.
+
 ## Deploy (Railway)
 
 `railway.toml` builds the Dockerfile and health-checks `/health`. With the Railway CLI:
