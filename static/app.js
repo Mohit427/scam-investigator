@@ -15,6 +15,9 @@
   const entryEl = $("#case-entry");
   const summaryEl = $("#case-summary");
   const spreadEl = $("#case");
+  const headEl = $("#result-head");
+  const leftPage = $(".page-left");
+  const countEl = $("#trail-count");
 
   const LABELS = {
     likely_scam: "Likely a scam",
@@ -88,8 +91,8 @@
     else if (/^Checking .* against live sources/.test(message)) setStage("reputation");
     else if (/isolated|redirects to a different site|short link leads/.test(message)) setStage("visit");
     const row = $("#tpl-note").content.firstElementChild.cloneNode(true);
-    row.querySelector(".c-time").textContent = clock();
-    row.querySelector("p").textContent = message;
+    row.querySelector(".note-time").textContent = clock();
+    row.querySelector(".note-text").textContent = message;
     ledger.appendChild(row);
     ledgerEmpty.hidden = true;
     keepLatestVisible();
@@ -100,21 +103,36 @@
     setStage(STAGE_OF_TOOL[f.tool] || "reputation");
     const row = $("#tpl-row").content.firstElementChild.cloneNode(true);
     row.id = "finding-" + f.id;
-    row.querySelector(".c-time").textContent = clock(f.timestamp_utc);
     row.querySelector(".src").textContent = f.source;
-    row.querySelector(".ref").textContent = "Entry " + f.id;
+    row.querySelector(".ref").textContent = `Entry ${f.id} · ${clock(f.timestamp_utc)}`;
     row.querySelector(".part").textContent = f.summary;
     const key = f.status === "ok" ? f.signal : f.status;
     const sig = row.querySelector(".sig");
     sig.textContent = SIGNAL_WORDS[key] || key;
     sig.classList.add(key);
+    row.classList.add("is-" + key);
     row.querySelector("pre").textContent = JSON.stringify(
       { tool: f.tool, status: f.status, timestamp_utc: f.timestamp_utc, raw: f.raw }, null, 2);
     ledger.appendChild(row);
     ledgerEmpty.hidden = true;
     const n = findings.size;
     setStatus(`Investigating · ${n} ${n === 1 ? "entry" : "entries"} printed so far`, "busy");
+    updateCount();
     keepLatestVisible();
+  }
+
+  // A one-line tally of the real findings, so the trail reads at a glance.
+  function updateCount() {
+    const all = [...findings.values()];
+    const has = (fn) => all.filter(fn).length;
+    const parts = [`${all.length} ${all.length === 1 ? "entry" : "entries"}`];
+    const flagged = has((f) => f.status === "ok" && (f.signal === "malicious" || f.signal === "suspicious"));
+    const clean = has((f) => f.status === "ok" && f.signal === "benign");
+    const failed = has((f) => f.status !== "ok");
+    if (flagged) parts.push(`${flagged} flagged`);
+    if (clean) parts.push(`${clean} clean`);
+    if (failed) parts.push(`${failed} could not answer`);
+    countEl.textContent = parts.join(" · ");
   }
 
   function showEntry(id, btn) {
@@ -186,6 +204,10 @@
     for (let i = 0; i < 20; i++) meter.appendChild(el("i", i < lit ? "on" : ""));
     verdictEl.appendChild(meter);
 
+    const jump = el("a", "v-jump", `See the evidence trail (${findings.size} ${findings.size === 1 ? "entry" : "entries"})`);
+    jump.href = "#trail";
+    verdictEl.appendChild(jump);
+
     const cols = el("div", "v-cols");
     if (v.action_guidance && v.action_guidance.length) {
       const box = el("div");
@@ -218,6 +240,7 @@
 
     verdictEl.hidden = false;
     verdictEl.scrollTop = 0;
+    if (!mobile.matches) ledgerScroll.scrollTop = 0; // read the trail from its first entry
     countUp(num, pct);
     const total = findings.size;
     setStatus(`Investigation closed · ${total} ${total === 1 ? "entry" : "entries"} in the ledger`);
@@ -226,9 +249,9 @@
   }
 
   function revealResult() {
-    const top = resultEl.getBoundingClientRect().top;
+    const top = headEl.getBoundingClientRect().top;
     if (top < 0 || top > window.innerHeight * 0.35) {
-      resultEl.scrollIntoView({ block: "start", behavior: reduceMotion.matches ? "auto" : "smooth" });
+      headEl.scrollIntoView({ block: "start", behavior: reduceMotion.matches ? "auto" : "smooth" });
     }
   }
 
@@ -283,6 +306,7 @@
     ledgerEmpty.hidden = false;
     $("#ledger-empty-text").textContent = "Waiting for the first source to answer…";
     findings.clear();
+    countEl.textContent = "";
     verdictEl.hidden = true;
     verdictEl.innerHTML = "";
     stampsEl.classList.remove("decided");
@@ -311,8 +335,9 @@
     entryEl.hidden = true;
     summaryEl.hidden = false;
     spreadEl.classList.add("open");
+    leftPage.appendChild(headEl); // verdict on the left page, the trail gets the whole right page
     // On phones the result page sits below; bring it up so progress and the verdict are what you see.
-    if (mobile.matches) resultEl.scrollIntoView({ block: "start", behavior: reduceMotion.matches ? "auto" : "smooth" });
+    if (mobile.matches) headEl.scrollIntoView({ block: "start", behavior: reduceMotion.matches ? "auto" : "smooth" });
     try {
       const gotVerdict = await run(message);
       if (!gotVerdict) setStatus("The connection closed before a verdict arrived. Please try again.", "error");
@@ -332,6 +357,7 @@
     summaryEl.hidden = true;
     entryEl.hidden = false;
     spreadEl.classList.remove("open");
+    resultEl.insertBefore(headEl, resultEl.querySelector(".trail-head"));
     textarea.focus();
     textarea.select();
   });
@@ -340,23 +366,4 @@
     textarea.value = EXAMPLES[b.dataset.example] || "";
     textarea.focus();
   }));
-
-  // Sections below the passbook settle in once as they enter; visible by default without script.
-  if ("IntersectionObserver" in window && !reduceMotion.matches) {
-    const targets = document.querySelectorAll(".how h2, .stair li, .sources-head, .statement, .help h2, .helpline, .help-list li");
-    const io = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        entry.target.classList.add("in");
-        io.unobserve(entry.target);
-      }
-    }, { rootMargin: "0px 0px -10% 0px" });
-    targets.forEach((t, i) => {
-      if (t.getBoundingClientRect().top > window.innerHeight) {
-        t.classList.add("reveal");
-        t.style.transitionDelay = (i % 4) * 70 + "ms";
-        io.observe(t);
-      }
-    });
-  }
 })();

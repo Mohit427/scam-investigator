@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Scam Investigator</title>
-  <meta name="description" content="Paste a suspicious SMS, WhatsApp message or link. Live security sources check it and every answer is shown as evidence.">
+  <meta name="description" content="Paste a suspicious SMS, WhatsApp message or link. Live security sources examine it and every verdict shows its evidence.">
   <meta name="theme-color" content="#14264a">
   <link rel="preload" href="/static/fonts/anek-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/landing.css">
 </head>
-<body>
-  <a class="skip" href="#message">Skip to the message box</a>
+<body class="landing">
+  <a class="skip" href="#check">Skip to Check a message</a>
 
   <header class="cover-bar">
     <a class="wordmark" href="/" aria-label="Scam Investigator, home">
@@ -30,86 +31,44 @@
   </header>
 
   <main>
-    <section class="spread" id="case" aria-label="Investigate a message">
+    <section class="light" id="light" aria-labelledby="light-title">
+      <canvas class="microprint" aria-hidden="true"></canvas>
+      <div class="light-copy">
+        <h1 id="light-title" data-decrypt>It looks real.<br>Check it first.</h1>
+        <p class="light-lead">Paste a suspicious SMS, WhatsApp message or link. Live security sources examine it, and the verdict shows every piece of evidence.</p>
+        <div class="light-actions">
+          <a class="cta" id="check" href="/investigate" data-open data-magnet>
+            <span>Check a message</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          </a>
+          <a class="quiet-link" href="#how">See how it checks</a>
+        </div>
+      </div>
+      <p class="light-hint"><span class="hint-hover">Move your pointer over the print to read it.</span> Patterns people receive, written by us; their warning signs show in red.</p>
+    </section>
+
+    <section class="loss" aria-label="Why this matters">
+      <p class="loss-statement" data-scroll-reveal>In 2024, Indians lost ₹22,845 crore to cyber fraud, three times the year before. A scam only has to look real for a few seconds.</p>
+      <p class="loss-source">Figures: Minister of State for Home Affairs, written reply in the Lok Sabha, 22 July 2025 (₹22,845.73 crore in 2024, ₹7,465.18 crore in 2023), <a href="https://www.theweek.in/wire-updates/business/2025/07/22/del23-lsq-cyber-fraud.html" rel="noopener" target="_blank">reported by PTI</a>.</p>
+    </section>
+
+    <section class="answers-wrap" aria-labelledby="answers-title">
       <canvas class="guilloche" aria-hidden="true"></canvas>
-
-      <div class="page page-left">
-        <div class="case-entry" id="case-entry">
-          <h1>Strange message? Check&nbsp;it&nbsp;first.</h1>
-          <p class="lead">Paste the SMS, WhatsApp text or link. Live security sources examine it, and every answer is printed here as evidence.</p>
-
-          <form id="form" class="paste" novalidate>
-            <label for="message" class="paste-label">The message or link you received</label>
-            <textarea id="message" name="message" rows="7" maxlength="5000" required spellcheck="false"
-              aria-describedby="paste-note"
-              placeholder="Paste the full message here, including any link"></textarea>
-            <div class="paste-foot">
-              <p id="paste-note" class="note">Not stored. Only links and domains go to security services.</p>
-              <button id="submit" class="btn" type="submit">
-                <span class="btn-text">Investigate</span>
-                <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-              </button>
-            </div>
-          </form>
-
-          <div class="tryline" id="tryline">
-            <span>Try a pattern people receive:</span>
-            <button type="button" class="try" data-example="kyc">Bank KYC SMS</button>
-            <button type="button" class="try" data-example="power">Power cut-off (Hinglish)</button>
-            <button type="button" class="try" data-example="bank">A bank's link</button>
-          </div>
-        </div>
-
-        <div class="case-summary" id="case-summary" hidden>
-          <p class="case-label">Case under investigation</p>
-          <p class="case-text" id="case-text"></p>
-          <button type="button" class="link-btn" id="new-case">Check a different message</button>
-        </div>
-      </div>
-
-      <div class="page page-right" id="result" tabindex="-1" aria-labelledby="result-title" data-ui>
-        <h2 class="visually-hidden" id="result-title">Result</h2>
-
-        <div class="stamps" id="stamps" role="group" aria-label="Possible verdicts">
-          <div class="stamp stamp-scam" data-verdict="likely_scam"><span>Likely scam</span></div>
-          <div class="stamp stamp-unsure" data-verdict="cannot_determine"><span>Can't say</span></div>
-          <div class="stamp stamp-genuine" data-verdict="likely_legitimate"><span>Likely genuine</span></div>
-        </div>
-
-        <p class="status" id="status" role="status" aria-live="polite">Paste a message and press Investigate. Each live source's answer will print in the ledger below.</p>
-
-        <section class="verdict" id="verdict" hidden aria-live="polite" aria-labelledby="verdict-title"></section>
-
-        <div class="ledger-wrap">
-          <ol class="stations" id="stations" aria-label="Stages of the investigation">
-            <li data-stage="read">Reading the message</li>
-            <li data-stage="reputation">Checking reputation</li>
-            <li data-stage="visit">Visiting the link</li>
-            <li data-stage="judge">Weighing the evidence</li>
-          </ol>
-          <div class="ledger" id="ledger-scroll">
-            <table class="ledger-table">
-              <caption class="visually-hidden">Evidence ledger: one entry per live check</caption>
-              <thead>
-                <tr><th scope="col" class="c-time">Time</th><th scope="col" class="c-src">Source</th><th scope="col">Particulars</th><th scope="col" class="c-sig">Signal</th></tr>
-              </thead>
-              <tbody id="ledger"></tbody>
-              <tbody id="ledger-empty" class="blank-rows">
-                <tr class="blank"><td colspan="4" id="ledger-empty-text">No entries yet. Each live source that answers prints one row here.</td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-                <tr class="blank"><td colspan="4"></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      <h2 id="answers-title">Three possible answers. One of them is "can't say".</h2>
+      <ul class="answers" data-strike>
+        <li>
+          <div class="stamp stamp-scam"><span>Likely scam</span></div>
+          <p>The evidence points to fraud. You see which sources say so, and what to do right now.</p>
+        </li>
+        <li>
+          <div class="stamp stamp-unsure"><span>Can't say</span></div>
+          <p>The evidence is thin or conflicting. We tell you that instead of guessing, and what you can check yourself.</p>
+        </li>
+        <li>
+          <div class="stamp stamp-genuine"><span>Likely genuine</span></div>
+          <p>The evidence points to a real sender, such as an official domain with a long history and no flags.</p>
+        </li>
+      </ul>
     </section>
 
     <section class="how" id="how" aria-labelledby="how-title">
@@ -171,10 +130,17 @@
         </ul>
       </div>
     </section>
+    <section class="close" aria-labelledby="close-title">
+      <h2 id="close-title">Got one right now?</h2>
+      <a class="cta" href="/investigate" data-magnet>
+        <span>Check a message</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      </a>
+    </section>
   </main>
 
   <footer class="colophon">
-    <p>Your message is checked in memory and never stored. Results come only from live sources at the moment you ask.</p>
+    <p>Your message is checked in memory and never stored. Results come only from live sources at the moment you ask. Effects adapted from React Bits. Typeface: Anek Latin by Ek Type.</p>
     <p class="colophon-name" aria-hidden="true">Scam Investigator</p>
   </footer>
 
@@ -188,23 +154,7 @@
     </filter>
   </svg>
 
-  <template id="tpl-row">
-    <tr class="entry">
-      <td class="c-time"></td>
-      <td class="c-src"><span class="src"></span><span class="ref"></span></td>
-      <td class="c-part">
-        <p class="part"></p>
-        <details class="raw"><summary>Raw evidence</summary><pre></pre></details>
-      </td>
-      <td class="c-sig"><span class="sig"></span></td>
-    </tr>
-  </template>
-
-  <template id="tpl-note">
-    <tr class="entry-note"><td class="c-time"></td><td colspan="3"><p></p></td></tr>
-  </template>
-
   <script src="/static/guilloche.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/landing.js" defer></script>
 </body>
 </html>

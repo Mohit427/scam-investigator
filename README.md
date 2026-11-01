@@ -113,10 +113,9 @@ flowchart TD
 
 ## Interface
 
-A single static page (no build step), designed as an Indian bank passbook: each live check prints
-as a ledger entry and the verdict is struck as a rubber stamp. When a case opens, the result page
-takes the width so the verdict, confidence, next steps and cited reasons are on screen without
-scrolling (on phones the page scrolls the result into view). The paper's moving guilloche is a
+A landing page at `/` and the tool at `/investigate` (static files, no build step), designed as an Indian bank passbook: each live check prints
+as a ledger entry and the verdict is struck as a rubber stamp. When a case opens, the verdict sits on the left page and the evidence trail fills the right page,
+so both are on screen without scrolling (on phones the page scrolls the result into view). The paper's moving guilloche is a
 Canvas 2D port of the ReactBits "Waves" background; the typeface is Anek Latin (Ek Type, OFL),
 self-hosted in `static/fonts/`. Design tokens and rules: [DESIGN.md](DESIGN.md).
 

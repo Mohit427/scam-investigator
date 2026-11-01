@@ -65,14 +65,18 @@ display, h2, h3, lead, body, plus small. No monospace except raw JSON evidence.
 ## Components
 
 - **Spread**: two pages, a flat fold band between them. Before a case: 1fr / 1.08fr. With a case
-  open the result page takes the width (0.62fr / 1.38fr) — the answer comes first.
+  open (0.84fr / 1.16fr) the stamps and verdict move to the left page and the Evidence trail fills
+  the whole right page, so answer and proof are both on screen.
+- **Microprint hero** (landing): the cover printed with scrambled rows; a lamp (pointer, or a slow
+  autopilot on touch) decrypts illustrative scam patterns with warning signs in `--tell`. Copy zones
+  stay dim. Pressing Check a message grows the lamp over the sheet, then opens the tool.
 - **Stamps row**: all three verdicts are always printed faintly; on verdict the real one is struck
   (scale-in thunk, -3.5deg, SVG ink-speckle filter `#stamp-ink`), the rest fade further.
 - **Verdict panel**: paper-field ground, 6px top band in the verdict colour, title, "N% sure" with a
   CountUp, a 20-cell meter, then What to do and Why (citation buttons jump to and flash ledger rows).
 - **Stations**: Reading the message → Checking reputation → Visiting the link → Weighing the evidence;
   square markers: outline (pending), blinking (active), filled (done).
-- **Ledger**: a real table (Time, Source + entry id, Particulars, Signal) with raw evidence in a
+- **Ledger**: a real table (Source + entry id and time, What it found, Signal), flagged and clean rows washed, with raw evidence in a
   disclosure. New rows print left-to-right (`clip-path` steps). Blank ruled rows before a case.
   On phones rows become stacked blocks.
 - **Buttons**: square, flat navy fill, arrow nudges on hover. Text actions are underlined links.

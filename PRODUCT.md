@@ -37,7 +37,7 @@ is thin it says "can't say" rather than bluffing.
 
 ## Operating Context
 
-Single page: paste, investigate, watch the live trail, read the verdict. Typical inputs: Indian bank
+Landing page, then the tool: paste, investigate, watch the live trail, read the verdict. Typical inputs: Indian bank
 KYC SMS, courier/customs fees, electricity disconnection, job/task scams, UPI refund requests, short
 links (bit.ly etc.). India-specific next steps: cybercrime.gov.in, helpline 1930, Sanchar Saathi /
 Chakshu.

@@ -2,35 +2,24 @@
 version: 1
 slug: "static-index-html"
 primary_target: "static/index.html"
-related_targets: ["static/style.css","static/app.js"]
+related_targets: ["static/landing.css","static/landing.js"]
 ---
 
-# Surface: landing + investigation (static/index.html)
+# Surface: landing (static/index.html)
 
-Mode: Persuade (landing) wrapping an Operate core (the investigation). Audience: anxious citizens on
-phones; judges secondary. Action: paste a message and investigate, in the first viewport.
-Constraint: the verdict must be on screen without scrolling once a check finishes. No sample results.
+Mode: Persuade. Audience: anxious citizens on phones; judges secondary. Action: "Check a message" opens /investigate.
+No sample results anywhere; the microprint messages are labelled as written by us.
 
 ## Direction contract
 
-THESIS: The case is a bank passbook. Every live check prints as a ledger entry; the verdict is the
-branch stamp. Refuses the dark "security AI" hero with a centred box and three tiles.
+THESIS: Hold a message up to the light. A scam looks real until it is examined. Refuses the dark security-AI hero with a centred box and three tiles.
 
-OWN-WORLD: Navy cloth cover (#14264A) frames pale sea-green security paper (#E6EFE8) with a live
-guilloche of noise-flowed lines (Waves port). Blue-black print ink. Ledger tables with printed
-columns. Verdicts are rubber stamps: vermilion (scam), bank green (genuine), turmeric ochre (can't
-say), each with its own word and frame. Gold foil only on the cover. One face: Anek Latin.
+OWN-WORLD: Evidence Passbook, per DESIGN.md. Hero is the navy cover printed edge to edge with security microprint.
 
-STORY: A visitor sees the passbook open, understands that each source answers in writing, pastes the
-message, watches entries print, reads the stamp, then the next steps (1930, cybercrime.gov.in).
+STORY: The visitor sees scrambled print decrypt under a moving lamp, reads a real-pattern scam with its tells in vermilion, understands that this product examines messages, and presses the button.
 
-FIRST VIEWPORT: Desktop: navy bar; an open spread fills the rest. Left page: h1 "Got a strange
-message? Check it first.", one line, the paste field, Investigate. Right page: three faint stamps
-over an empty ledger with the stages printed down the side. Phone: the left page, then the right
-page scrolled into view on submit.
+FIRST VIEWPORT: Full-bleed canvas of scrambled microprint rows, lamp wandering in the upper half. Lower left: h1 "It looks real. Check it first." at display scale, one line, foil button. Small hint at lower right.
 
-FORM: Evidence Passbook, candidate 4 of 7, seed 20a70938. Raises: all verdicts visible, real one
-struck (cathode); ordered stations (darkroom); word + shape, never colour alone (cyclorama);
-generated guilloche (op-art).
+FORM: Under the light, surface round, dealt lead, seed 460349a0. Signature: pressing the button grows the lamp until the whole screen decrypts, then the passbook opens.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

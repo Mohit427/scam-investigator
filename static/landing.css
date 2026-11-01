@@ -1,0 +1,103 @@
+/* Landing page: "under the light". Tokens and shared parts come from style.css. */
+
+.landing { --s-hero: clamp(3.1rem, 1rem + 7.4vw, 7.75rem); }
+.landing .cover-bar { position: absolute; inset: 0 0 auto 0; z-index: 3; }
+
+/* ---------- hero: security microprint under a moving lamp ---------- */
+.light {
+  position: relative;
+  min-height: 100svh;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); align-items: end; gap: 24px clamp(24px, 4vw, 64px);
+  padding: calc(var(--bar) + 24px) var(--gutter) clamp(28px, 5vh, 56px);
+  overflow: hidden;
+  isolation: isolate;
+}
+.microprint { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.light-copy { color: var(--on-cover); max-width: 60rem; }
+.light h1 {
+  font-size: var(--s-hero); font-weight: 800; line-height: 0.92; letter-spacing: -0.03em;
+  text-wrap: unset;
+}
+.light h1 .w { display: inline-block; white-space: nowrap; }
+.light h1 .c { display: inline-block; text-align: center; }
+.light h1 .c.scrambling { color: var(--foil); }
+.light-lead { margin-top: clamp(16px, 2.6vh, 28px); max-width: 37rem; font-size: var(--s-lead); line-height: 1.45; }
+.light-actions { margin-top: clamp(20px, 3.4vh, 36px); display: flex; align-items: center; flex-wrap: wrap; gap: 14px 28px; }
+
+.cta {
+  display: inline-flex; align-items: center; gap: 12px;
+  min-height: 60px; padding: 0 30px;
+  background: var(--foil); color: var(--cover-deep);
+  font-size: var(--s-lead); font-weight: 700; text-decoration: none;
+  transition: background-color .2s;
+  will-change: transform;
+}
+.cta svg { width: 22px; height: 22px; transition: transform .25s var(--ease-out); }
+.cta:hover { background: var(--on-cover); }
+.cta:hover svg { transform: translateX(4px); }
+.cta:active { background: var(--on-cover-2); }
+.quiet-link { color: var(--on-cover); font-weight: 600; text-underline-offset: 0.3em; text-decoration-thickness: 2px; text-decoration-color: var(--foil); }
+.quiet-link:hover { color: var(--foil); }
+
+.light-hint { color: var(--on-cover-2); font-size: var(--s-small); line-height: 1.4; }
+@media (hover: none) { .hint-hover { display: none; } }
+
+/* ---------- the loss, word by word on scroll ---------- */
+.loss { padding: clamp(96px, 16vw, 220px) var(--gutter) clamp(72px, 10vw, 140px); color: var(--on-cover); }
+.loss-statement {
+  max-width: 21em;
+  font-size: clamp(2rem, 1.2rem + 3vw, 4rem); font-weight: 700; font-stretch: var(--narrow);
+  line-height: 1.08; letter-spacing: -0.02em;
+}
+.loss-statement .word { transition: opacity .25s linear; }
+.loss-source { margin-top: 28px; max-width: 40rem; color: var(--on-cover-2); font-size: var(--s-small); }
+.loss-source a { color: var(--on-cover); }
+
+/* ---------- the three answers, struck on paper ---------- */
+.answers-wrap {
+  position: relative; isolation: isolate;
+  background: var(--paper);
+  margin: 0 var(--gutter);
+  padding: clamp(56px, 8vw, 120px) clamp(20px, 5vw, 80px);
+  overflow: hidden;
+}
+.answers-wrap h2 {
+  font-size: var(--s-h2); font-weight: 700; font-stretch: var(--narrow); line-height: 1; letter-spacing: -0.025em;
+  text-wrap: balance; max-width: 22ch;
+}
+.answers { margin-top: clamp(32px, 5vw, 64px); display: grid; gap: clamp(20px, 3vw, 36px); }
+.answers li { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 34rem); gap: 12px clamp(24px, 4vw, 64px); align-items: center; }
+.answers li:nth-child(2) { margin-left: clamp(0px, 6vw, 96px); }
+.answers li:nth-child(3) { margin-left: clamp(0px, 12vw, 192px); }
+.answers .stamp { min-height: 92px; font-size: clamp(1.5rem, 1rem + 1.6vw, 2.25rem); opacity: 0.18; }
+.answers .stamp.struck { opacity: 1; filter: url(#stamp-ink); transform: rotate(var(--tilt, -3deg)); animation: strike-big 0.46s var(--ease-out) both; }
+.answers li:nth-child(2) .stamp { --tilt: 2deg; }
+.answers li:nth-child(3) .stamp { --tilt: -1.5deg; }
+.answers .stamp-genuine::after { inset: 6px; }
+.answers p { font-size: var(--s-lead); line-height: 1.4; }
+@keyframes strike-big {
+  0% { transform: rotate(-10deg) scale(1.6); opacity: 0; }
+  55% { transform: rotate(var(--tilt, -3deg)) scale(0.96); opacity: 1; }
+  100% { transform: rotate(var(--tilt, -3deg)) scale(1); opacity: 1; }
+}
+
+/* ---------- close ---------- */
+.close { padding: clamp(40px, 6vw, 80px) var(--gutter) clamp(80px, 12vw, 160px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; color: var(--on-cover); }
+.close h2 { font-size: var(--s-hero); font-weight: 800; font-stretch: var(--narrow); line-height: 0.95; letter-spacing: -0.03em; }
+
+.landing .help { padding-bottom: clamp(48px, 7vw, 96px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .answers .stamp.struck { animation: none; }
+  .loss-statement .word { transition: none; }
+}
+
+@media (max-width: 900px) {
+  .light { grid-template-columns: minmax(0, 1fr); }
+  .answers-wrap { margin: 0; padding: 56px 16px; }
+  .answers li { grid-template-columns: minmax(0, 1fr); }
+  .answers li:nth-child(n) { margin-left: 0; }
+  .answers .stamp { min-height: 76px; max-width: 22rem; }
+  .cta { width: 100%; justify-content: center; }
+  .quiet-link { padding: 4px 0; }
+}

@@ -45,6 +45,11 @@ async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/investigate")
+async def investigate_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "investigate.html")
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "keys_present": key_presence()}
