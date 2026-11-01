@@ -84,25 +84,32 @@ The image includes Playwright + Chromium for the upcoming browser tracer. `$PORT
 
 ## Architecture
 
+![Scam Investigator architecture](docs/architecture.png)
+
+<details>
+<summary>Mermaid source (edit this, then re-render docs/architecture.png)</summary>
+
 ```mermaid
 flowchart TD
-    U[Citizen pastes message] -->|POST /api/investigate| RL[Rate limit]
-    RL --> X[Extraction: Gemini, regex fallback]
-    X -->|links| N[Normalize URLs]
-    X -->|no links| J
-    N --> S{Shortener?}
-    S -->|yes| B1[Browser unroll + URL reputation] -->|destination| N
-    S -->|no| C[Cheap tier: Safe Browsing, VirusTotal, URLhaus,<br/>OpenPhish, RDAP, crt.sh, lookalike]
-    C --> E{Escalate?}
-    E -->|yes| D[Expensive tier: browser trace,<br/>page analysis, urlscan]
-    D -->|cross-site redirect| N
-    E -->|no| J
-    D --> J[Judge: Gemini sees only entities + evidence]
-    J --> V[Guardrails: drop uncited reasons,<br/>confidence caps]
-    V -->|SSE stream| UI[Passbook: ledger entries + struck verdict stamp]
+    U["Citizen pastes message"] -->|"POST /api/investigate"| RL["Rate limit"]
+    RL --> X["Extraction: Gemini, regex fallback"]
+    X -->|"links"| N["Normalize URLs"]
+    X -->|"no links"| J
+    N --> S{"Shortener?"}
+    S -->|"yes"| B1["Browser unroll + URL reputation"]
+    B1 -->|"destination"| N
+    S -->|"no"| C["Cheap tier: Safe Browsing, VirusTotal, URLhaus,<br/>OpenPhish, RDAP, crt.sh, lookalike"]
+    C --> E{"Escalate?"}
+    E -->|"yes"| D["Expensive tier: browser trace,<br/>page analysis, urlscan"]
+    D -->|"cross-site redirect"| N
+    E -->|"no"| J
+    D --> J["Judge: Gemini sees only entities + evidence"]
+    J --> V["Guardrails: drop uncited reasons,<br/>confidence caps"]
+    V -->|"SSE stream"| UI["Passbook UI: ledger entries + struck verdict stamp"]
 ```
 
-<!-- Replace or extend this diagram as you like. -->
+</details>
+
 
 ## Interface
 
