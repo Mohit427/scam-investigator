@@ -59,6 +59,7 @@ class Target(BaseModel):
     host: str
     registered_domain: str
     is_shortener: bool = False
+    via: str | None = None  # the link that redirected here, if this target was discovered by the browser
 
 
 class Entities(BaseModel):

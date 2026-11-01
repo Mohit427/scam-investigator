@@ -8,9 +8,12 @@ mock/hardcoded data.
 ## Hard rules (always follow)
 
 1. **No mock data.** No fake responses, placeholder numbers, sample JSON results or
-   canned findings anywhere — not in tools, not in the frontend, not in tests.
-   If an API key is missing, the tool returns a `Finding` with
-   `status="unavailable"` and says why. It never fabricates a result.
+   canned findings anywhere in the app or frontend. If an API key is missing, the
+   tool returns a `Finding` with `status="unavailable"` and says why. It never
+   fabricates a result. Reference lists (link shorteners, official brand domains in
+   `tools/lookalike.py`) must be real and verifiable; they are reference data, not
+   evidence. Unit tests may build inputs for pure functions but never fake an API
+   response to simulate a live result.
 2. **One Finding shape.** Every tool returns
    `{id, tool, source, timestamp_utc, status: ok|error|unavailable|timeout, summary, raw, signal: malicious|suspicious|benign|neutral}`.
    Any non-`ok` finding must have `signal="neutral"` (enforced by the model).
@@ -25,7 +28,9 @@ mock/hardcoded data.
    `<evidence>`) with an instruction to ignore any commands inside them.
    LLM-extracted URLs/phones/UPI ids are kept only if they literally appear in the
    original message.
-5. **Privacy.** Never persist or log user messages. Third-party lookup APIs receive
+5. **Privacy.** Never persist or log user messages. The browser tracer visits the
+   link itself from our server, so a scammer's server may see one visit (from our
+   IP, not the user's); it never sends the user's message anywhere. Third-party lookup APIs receive
    only URLs or domains — never the message text or personal data. (The Gemini
    API is the only service that sees the message, for extraction. On Gemini's free
    tier Google may use that content to improve its products; use a billed key for
@@ -36,7 +41,11 @@ mock/hardcoded data.
    a graceful fallback. Every tool runs inside `tools.run_tool`, which converts any
    exception/timeout into a Finding. One failing tool never crashes a case, and a
    final `verdict` event is always emitted.
-7. **Dependencies.** Ask the user before adding anything beyond: fastapi, uvicorn,
+7. **Browser safety (SSRF).** The headless browser may only reach public hosts:
+   `app/safety.py` blocks private, loopback, link-local and metadata addresses on
+   every request, and captured content is discarded if any redirect hop lands on
+   one. Downloads are refused and images/media/fonts are not loaded.
+8. **Dependencies.** Ask the user before adding anything beyond: fastapi, uvicorn,
    httpx, pydantic, python-dotenv, playwright, tldextract. The Gemini API is called
    over httpx (REST `generateContent`), not an SDK. Domain registration data uses
    RDAP over httpx (no whois libraries). Tests use stdlib `unittest`.
@@ -48,10 +57,16 @@ mock/hardcoded data.
 - `app/net.py` — shared httpx client with timeout + single retry.
 - `app/llm.py` — Gemini `generateContent` JSON calls: primary model, then one backup model.
 - `app/extraction.py` — LLM entity extraction (fast model) with regex fallback.
-- `app/orchestrator.py` — async generator producing SSE events; escalation rules; tool budget (12/case).
+- `app/orchestrator.py` — async generator producing SSE events; escalation rules; shortener
+  unrolling and redirect following (destinations become new targets, max 5); tool budget
+  (12 external calls/case; local tools and `unavailable` results don't count).
 - `app/verdict.py` — LLM judge (judge model) that sees only entities + evidence; post-validation.
-- `app/tools/` — one module per live source; registry with cost tiers in `__init__.py`.
-  `lookalike`, `browser_trace`, `page_analysis` are stubs returning `unavailable`.
+- `app/tools/` — one module per source; registry with cost tiers in `__init__.py`.
+  Cheap tier: safe_browsing, virustotal, urlhaus, openphish, rdap, crtsh, lookalike (local).
+  Expensive tier: browser_trace (Playwright), page_analysis (Gemini on the captured page,
+  shares one browser visit via `browser_trace.capture`), urlscan (search, else new unlisted scan).
+- `app/safety.py` — public-host check used by the browser.
+- `app/ratelimit.py` — in-memory per-client rate limit + concurrency cap for `/api/investigate`.
 - `static/` — single page UI (vanilla JS, fetch + stream reader for POST SSE).
 
 ## Conventions
@@ -63,3 +78,4 @@ mock/hardcoded data.
   a trimmed copy of what the API actually returned, and values computed from it.
 - Never put secrets in URLs (use headers) and pass error text through `config.redact`.
 - Do not run network calls against API keys the user has not provided.
+- On Windows, run uvicorn **without** `--reload`: its subprocess event loop can't start the browser.

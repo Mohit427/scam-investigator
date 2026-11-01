@@ -26,6 +26,12 @@ def registered_domain(host: str) -> str:
     return ext.top_domain_under_public_suffix if hasattr(ext, "top_domain_under_public_suffix") else ext.registered_domain
 
 
+def split_domain(host: str) -> tuple[str, str]:
+    """('hdfcbank', 'com') for 'netbanking.hdfcbank.com'."""
+    ext = _extract(host)
+    return ext.domain, ext.suffix
+
+
 def has_public_suffix(host: str) -> bool:
     ext = _extract(host)
     return bool(ext.suffix and ext.domain)

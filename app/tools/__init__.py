@@ -30,27 +30,32 @@ class ToolSpec:
     fn: Callable[[Target], Awaitable[Finding]]
     tier: Tier
     deadline: float  # overall seconds for the whole tool, including retries/polling
+    external: bool = True  # counts against the per-case budget (lookalike runs locally)
+    url_level: bool = True  # False = judges the registered domain (meaningless for a shortener)
 
 
 REGISTRY: dict[str, ToolSpec] = {
     spec.name: spec
     for spec in (
+        # cheap tier, in priority order
         ToolSpec("safe_browsing", safe_browsing.SOURCE, safe_browsing.check, "cheap", 25),
         ToolSpec("virustotal", virustotal.SOURCE, virustotal.check, "cheap", 40),
         ToolSpec("urlhaus", urlhaus.SOURCE, urlhaus.check, "cheap", 25),
         ToolSpec("openphish", openphish.SOURCE, openphish.check, "cheap", 25),
-        ToolSpec("rdap", rdap.SOURCE, rdap.check, "cheap", 25),
-        ToolSpec("crtsh", crtsh.SOURCE, crtsh.check, "cheap", 45),
-        ToolSpec("urlscan", urlscan.SOURCE, urlscan.check, "expensive", 25),
-        ToolSpec("lookalike", lookalike.SOURCE, lookalike.check, "expensive", 10),
-        ToolSpec("browser_trace", browser_trace.SOURCE, browser_trace.check, "expensive", 10),
-        ToolSpec("page_analysis", page_analysis.SOURCE, page_analysis.check, "expensive", 10),
+        ToolSpec("rdap", rdap.SOURCE, rdap.check, "cheap", 25, url_level=False),
+        ToolSpec("crtsh", crtsh.SOURCE, crtsh.check, "cheap", 45, url_level=False),
+        ToolSpec("lookalike", lookalike.SOURCE, lookalike.check, "cheap", 5, external=False, url_level=False),
+        # expensive tier, in priority order
+        ToolSpec("browser_trace", browser_trace.SOURCE, browser_trace.check, "expensive", 35),
+        ToolSpec("page_analysis", page_analysis.SOURCE, page_analysis.check, "expensive", 80),
+        ToolSpec("urlscan", urlscan.SOURCE, urlscan.check, "expensive", 50),
     )
 }
 
-# Order = priority when the per-case tool budget can't cover the whole tier.
 CHEAP_TOOLS = [n for n, s in REGISTRY.items() if s.tier == "cheap"]
 EXPENSIVE_TOOLS = [n for n, s in REGISTRY.items() if s.tier == "expensive"]
+# For a link shortener: unroll it, plus the URL-level reputation checks on the short link itself.
+SHORTENER_TOOLS = ["browser_trace"] + [n for n in CHEAP_TOOLS if REGISTRY[n].url_level]
 
 
 async def run_tool(name: str, target: Target) -> Finding:

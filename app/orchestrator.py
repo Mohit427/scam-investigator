@@ -12,9 +12,9 @@ from typing import AsyncIterator
 
 from app import tools
 from app.extraction import extract_entities
-from app.models import CaseState, Entities, Finding, Verdict
+from app.models import CaseState, Entities, Finding, Target, Verdict
 from app.urls import normalize_url
-from app.verdict import DEFAULT_GUIDANCE, MESSAGE_TOOL, finalize, judge
+from app.verdict import MESSAGE_TOOL, default_guidance, finalize, judge
 
 log = logging.getLogger("scam_investigator.orchestrator")
 
@@ -78,21 +78,106 @@ def _escalation(findings: list[Finding]) -> tuple[bool, str]:
     return True, "No source gave a clear signal — running deeper checks."
 
 
-async def _run_batch(case: CaseState, names: list[str], target) -> AsyncIterator[Finding]:
-    """Run tools concurrently; yield each finding the moment it completes."""
-    case.tool_calls += len(names)
+async def _run_batch(case: CaseState, names: list[str], target: Target) -> AsyncIterator[Finding]:
+    """Run tools concurrently; yield each finding the moment it completes.
+
+    External tools are charged to the budget up front; a tool that returned
+    "unavailable" (no key / no browser) made no call, so its charge is refunded.
+    """
+    charged = {n for n in names if tools.REGISTRY[n].external}
+    case.tool_calls += len(charged)
     tasks = [asyncio.create_task(tools.run_tool(n, target)) for n in names]
     try:
         for next_done in asyncio.as_completed(tasks):
-            yield case.add_finding(await next_done)
+            finding = await next_done
+            if finding.status == "unavailable" and finding.tool in charged:
+                case.tool_calls -= 1
+            yield case.add_finding(finding)
     finally:
         for t in tasks:
             t.cancel()
 
 
-def _plan(case: CaseState, tier: list[str]) -> tuple[list[str], list[str]]:
-    budget = case.budget_left
-    return tier[:budget], tier[budget:]
+def _plan(case: CaseState, names: list[str]) -> tuple[list[str], list[str]]:
+    """Split tools into (run, skipped) by the remaining budget; local tools always run."""
+    run, skipped, budget = [], [], case.budget_left
+    for name in names:
+        if not tools.REGISTRY[name].external:
+            run.append(name)
+        elif budget > 0:
+            run.append(name)
+            budget -= 1
+        else:
+            skipped.append(name)
+    return run, skipped
+
+
+def _enqueue(case: CaseState, url: str, via: str) -> Target | None:
+    target = normalize_url(url)
+    if target is None or any(t.url == target.url for t in case.targets) or len(case.targets) >= MAX_URLS:
+        return None
+    target.via = via
+    case.targets.append(target)
+    return target
+
+
+def _destination(findings: list[Finding]) -> str | None:
+    trace = next((f for f in findings if f.tool == "browser_trace" and f.status == "ok"), None)
+    return trace.raw.get("derived", {}).get("final_url") if trace else None
+
+
+async def _run_tier(case: CaseState, names: list[str], target: Target, label: str,
+                    out: list[Finding]) -> AsyncIterator[dict]:
+    run, skipped = _plan(case, names)
+    if skipped:
+        yield step(f"Tool budget ({case.tool_budget} calls) reached; skipping {label}: {', '.join(skipped)}.")
+    if not any(tools.REGISTRY[n].external for n in run):
+        return
+    async for f in _run_batch(case, run, target):
+        out.append(f)
+        yield finding_event(f)
+
+
+async def _investigate_shortener(case: CaseState, target: Target) -> AsyncIterator[dict]:
+    yield step(f"{target.host} is a link shortener that hides the real destination. Opening it in an isolated "
+               "browser to unroll it, and checking the short link's reputation…")
+    found: list[Finding] = []
+    async for event in _run_tier(case, tools.SHORTENER_TOOLS, target, "checks", found):
+        yield event
+    dest = _destination(found)
+    dest_target = normalize_url(dest) if dest else None
+    if dest_target is None:
+        yield step("Could not determine where the short link leads (the page did not load).")
+    elif dest_target.host == target.host:
+        yield step(f"The link does not redirect anywhere; it shows a page on {target.host}.")
+    elif _enqueue(case, dest, via=target.url):
+        yield step(f"The short link leads to {dest} — investigating that destination next.")
+    else:
+        yield step(f"The short link leads to {dest} (already checked, or link limit reached).")
+
+
+async def _investigate_link(case: CaseState, target: Target) -> AsyncIterator[dict]:
+    yield step(f"Checking {target.url} against live sources in parallel…")
+    found: list[Finding] = []
+    async for event in _run_tier(case, tools.CHEAP_TOOLS, target, "quick checks", found):
+        yield event
+
+    escalate, why = _escalation(found)
+    yield step(why)
+    if not escalate:
+        return
+    deep = [n for n in tools.EXPENSIVE_TOOLS if not (n == "browser_trace" and target.via)]
+    if case.budget_left == 0:
+        yield step("Tool budget used up; no deeper checks possible.")
+        return
+    deep_found: list[Finding] = []
+    async for event in _run_tier(case, deep, target, "deeper checks", deep_found):
+        yield event
+    dest = _destination(deep_found)
+    dest_target = normalize_url(dest) if dest else None
+    if dest_target and dest_target.registered_domain != target.registered_domain:
+        if _enqueue(case, dest, via=target.url):
+            yield step(f"{target.host} redirects to a different site ({dest_target.host}) — investigating it too.")
 
 
 async def investigate(message: str) -> AsyncIterator[dict]:
@@ -103,7 +188,8 @@ async def investigate(message: str) -> AsyncIterator[dict]:
     except Exception as exc:  # noqa: BLE001 - last line of defence; always end with a verdict
         log.exception("investigation crashed")
         yield {"type": "error", "message": f"Investigation hit an internal error ({type(exc).__name__})."}
-        fallback = Verdict(verdict="cannot_determine", confidence=0.0, action_guidance=DEFAULT_GUIDANCE,
+        fallback = Verdict(verdict="cannot_determine", confidence=0.0,
+                           action_guidance=default_guidance(bool(case.targets)),
                            notes=["The investigation stopped early because of an internal error."])
         yield {"type": "verdict", "verdict": finalize(fallback, case).model_dump()}
 
@@ -132,38 +218,16 @@ async def _investigate(case: CaseState, message: str) -> AsyncIterator[dict]:
     else:
         yield step(f"Found {len(case.targets)} link(s): " + ", ".join(t.host for t in case.targets))
 
-    for target in case.targets:
+    i = 0
+    while i < len(case.targets):  # targets can grow as redirects are discovered
+        target = case.targets[i]
+        i += 1
         if case.budget_left == 0:
             yield step(f"Tool budget ({case.tool_budget} calls) used up; skipping {target.host}.")
             continue
-        if target.is_shortener:
-            yield step(f"{target.host} is a link shortener — the real destination is hidden. Marked for "
-                       "unrolling (the redirect tracer is not available yet); checking the short link itself.")
-
-        run, skipped = _plan(case, tools.CHEAP_TOOLS)
-        yield step(f"Checking {target.url} against {len(run)} live sources in parallel…")
-        if skipped:
-            yield step(f"Tool budget reached; skipping: {', '.join(skipped)}.")
-        target_findings: list[Finding] = []
-        async for f in _run_batch(case, run, target):
-            target_findings.append(f)
-            yield finding_event(f)
-
-        escalate, why = _escalation(target_findings)
-        if target.is_shortener and not escalate:
-            escalate, why = True, ("Results above describe the shortener service, not the hidden destination — "
-                                   "running deeper checks.")
-        yield step(why)
-        if not escalate:
-            continue
-        run, skipped = _plan(case, tools.EXPENSIVE_TOOLS)
-        if not run:
-            yield step("Tool budget used up; no deeper checks possible.")
-            continue
-        if skipped:
-            yield step(f"Tool budget reached; skipping deeper checks: {', '.join(skipped)}.")
-        async for f in _run_batch(case, run, target):
-            yield finding_event(f)
+        events = _investigate_shortener(case, target) if target.is_shortener else _investigate_link(case, target)
+        async for event in events:
+            yield event
 
     yield step("Weighing the evidence…")
     verdict = await judge(case)

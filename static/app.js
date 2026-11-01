@@ -148,8 +148,11 @@
       body: JSON.stringify({ message }),
     });
     if (!res.ok || !res.body) {
-      throw new Error(res.status === 422 ? "Please paste a message (up to 5000 characters)." :
-        `The server returned an error (${res.status}).`);
+      let detail = "";
+      try { detail = (await res.json()).detail; } catch { /* not JSON */ }
+      if (res.status === 422) throw new Error("Please paste a message (up to 5000 characters).");
+      if (res.status === 429 && typeof detail === "string") throw new Error(detail);
+      throw new Error(`The server returned an error (${res.status}).`);
     }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

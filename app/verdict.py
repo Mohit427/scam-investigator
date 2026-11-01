@@ -19,15 +19,23 @@ NO_URL_CONFIDENCE_CAP = 0.6
 FAILED_TOOLS_CONFIDENCE_CAP = 0.3
 MAX_RAW_CHARS = 2500
 
-# Static safety advice (guidance text, not evidence). Used when the judge omits guidance or is unavailable.
-DEFAULT_GUIDANCE = [
-    "Don't click any link in the message or reply to it for now.",
-    "Never share an OTP, PIN, CVV or password — banks and government offices never ask for them by SMS, call or WhatsApp.",
-    "If you want to check with the organisation, use the number or website you already know (on your card, passbook or official app), not the one in the message.",
-    "Block the sender and report the message at cybercrime.gov.in.",
-    "If money has already left your account, call the cyber fraud helpline 1930 right away — the sooner you call, the better the chance of stopping the transfer.",
-    "Report fraudulent calls, SMS or WhatsApp numbers on Sanchar Saathi (sancharsaathi.gov.in → Chakshu).",
-]
+# Tools that run locally; they never count as live evidence.
+LOCAL_TOOLS = {MESSAGE_TOOL, "lookalike"}
+
+
+def default_guidance(has_links: bool) -> list[str]:
+    """Static safety advice (guidance text, not evidence) for when the judge gives none or is unavailable."""
+    first = ("Don't open the link or reply to the message for now." if has_links
+             else "Don't reply, call back, or send money based on this message for now.")
+    return [
+        first,
+        "Never share an OTP, PIN, CVV or password — banks and government offices never ask for them by SMS, call or WhatsApp.",
+        "If you want to check with the organisation, use the number or website you already know (on your card, passbook or official app), not the one in the message.",
+        "Block the sender and report the message at cybercrime.gov.in.",
+        "If money has already left your account, call the cyber fraud helpline 1930 right away — the sooner you call, the better the chance of stopping the transfer.",
+        "Report fraudulent calls, SMS or WhatsApp numbers on Sanchar Saathi (sancharsaathi.gov.in → Chakshu).",
+    ]
+
 
 SCHEMA = {
     "type": "object",
@@ -56,7 +64,8 @@ SYSTEM = """You are the judge in a scam-investigation tool for Indian citizens. 
 
 Rules:
 - Every reason must cite one or more finding ids (e.g. "F3") from the evidence. A reason without valid ids will be discarded.
-- Never state facts about a domain, URL, number or organisation that are not in the findings. Do not use outside knowledge about specific sites.
+- Never state facts about a domain, URL, number or organisation that are not in the findings. Do not use outside knowledge about specific sites. In particular, only call a domain "official" or "genuine" if a lookalike finding says it is on the official-domain list.
+- Targets with a "via" value were reached by following a redirect from that link; judge the message by where its links really lead.
 - Findings with status other than "ok" carry no evidence; you may mention that a check was unavailable but must not infer anything from it.
 - Absence from a blocklist is weak evidence: new scams are often not listed yet.
 - If evidence is thin, missing or conflicting, lower your confidence or answer "cannot_determine". Reserve confidence above 0.85 for multiple independent strong signals.
@@ -75,7 +84,7 @@ def _finding_for_judge(f: Finding) -> dict:
 
 
 def _live_url_findings(case: CaseState) -> list[Finding]:
-    return [f for f in case.findings.values() if f.tool != MESSAGE_TOOL]
+    return [f for f in case.findings.values() if f.tool not in LOCAL_TOOLS]
 
 
 def _rule_based(case: CaseState, why: str) -> Verdict:
@@ -85,11 +94,11 @@ def _rule_based(case: CaseState, why: str) -> Verdict:
     malicious = [f for f in flagged if f.signal == "malicious"]
     if malicious:
         verdict = Verdict(verdict="likely_scam", confidence=0.7 if len(malicious) == 1 else 0.85,
-                          reasons=reasons, action_guidance=DEFAULT_GUIDANCE,
+                          reasons=reasons, action_guidance=default_guidance(bool(case.targets)),
                           notes=[f"AI judge unavailable ({why}); rule-based verdict from blocklist hits."])
     else:
         verdict = Verdict(verdict="cannot_determine", confidence=0.0, reasons=reasons,
-                          action_guidance=DEFAULT_GUIDANCE,
+                          action_guidance=default_guidance(bool(case.targets)),
                           notes=[f"AI judge unavailable ({why}); no blocklist hit to base a verdict on."])
     return verdict
 
@@ -125,7 +134,7 @@ def finalize(verdict: Verdict, case: CaseState) -> Verdict:
     return verdict.model_copy(update={
         "verdict": label,
         "confidence": round(max(0.0, min(1.0, confidence)), 2),
-        "action_guidance": verdict.action_guidance or DEFAULT_GUIDANCE,
+        "action_guidance": verdict.action_guidance or default_guidance(bool(case.targets)),
         "notes": notes,
         "live_evidence": bool(live_ok),
     })

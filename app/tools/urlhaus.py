@@ -37,6 +37,12 @@ async def check(target: Target) -> Finding:
             {"request": request, "response": response}, "malicious",
         )
 
+    if target.is_shortener:
+        # Every big shortener host has some abusive links; host-level stats say nothing about this one.
+        return Finding.new(TOOL, SOURCE, "ok", "This exact short link is not listed on URLhaus.",
+                           {"request": request, "response": {"url_query_status": url_data.get("query_status")}},
+                           "neutral")
+
     host_resp = await net.request("POST", f"{API}/host/", headers=headers, data={"host": target.host})
     if host_resp.status_code != 200:
         return Finding.new(TOOL, SOURCE, "error", f"URLhaus host lookup returned HTTP {host_resp.status_code}.",

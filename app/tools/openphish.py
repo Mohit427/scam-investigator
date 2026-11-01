@@ -57,7 +57,8 @@ async def check(target: Target) -> Finding:
     if _canon(target.url) in feed["urls"]:
         return Finding.new(TOOL, SOURCE, "ok", "This exact URL is in the current OpenPhish phishing feed.",
                            {**raw_base, "response": {"matched": "url"}}, "malicious")
-    host_matches = feed["hosts"].get(target.host, [])
+    # For shared shortener hosts only the exact link matters.
+    host_matches = [] if target.is_shortener else feed["hosts"].get(target.host, [])
     if host_matches:
         return Finding.new(TOOL, SOURCE, "ok",
                            f"{len(host_matches)} phishing URL(s) on host {target.host} are in the OpenPhish feed.",
